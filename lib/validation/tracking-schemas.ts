@@ -24,6 +24,7 @@ export const eventSchema = z.object({
   event_name: z.string().trim().min(1, { error: "event_name é obrigatório." }),
   trck_user_id: z.string().trim().min(1, { error: "trck_user_id é obrigatório." }),
   event_source_url: z.string().trim().max(2048).optional(),
+  referrer: z.string().trim().max(2048).optional(),
   value: z.coerce.number().optional(),
   currency: z.string().trim().length(3).optional(),
   content_ids: z.array(z.string()).optional(),

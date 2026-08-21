@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
     trck_user_id: input.trck_user_id,
     visitor_id: visitor?.id ?? null,
     event_source_url: input.event_source_url,
+    referrer: input.referrer ?? null,
     value: input.value,
     currency: input.currency,
     content_ids: input.content_ids,

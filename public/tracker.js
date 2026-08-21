@@ -277,6 +277,7 @@
           event_name: eventName,
           trck_user_id: trckUserId,
           event_source_url: window.location.href,
+          referrer: document.referrer || undefined,
           value: params.value,
           currency: params.currency,
           content_ids: params.content_ids,

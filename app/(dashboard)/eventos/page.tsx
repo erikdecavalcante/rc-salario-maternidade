@@ -13,6 +13,20 @@ import { getDashboardDateRange } from "@/lib/dashboard/date-range";
 const PAGE_SIZE = 25;
 const STATUS_OPTIONS = ["sent", "partial", "error", "skipped", "pending"];
 
+/**
+ * Origem sem utm nenhuma: mostra de onde a visita veio (referrer, só o
+ * domínio — igual convenção do GA4) ou "Direto" quando não há referrer
+ * (digitou a URL, favorito, ou o navegador não manda o header por privacidade).
+ */
+function referrerLabel(referrer: string | null): string {
+  if (!referrer) return "Direto";
+  try {
+    return new URL(referrer).hostname.replace(/^www\./, "");
+  } catch {
+    return referrer;
+  }
+}
+
 export default async function EventosPage({
   searchParams,
 }: {
@@ -25,7 +39,7 @@ export default async function EventosPage({
   let query = supabase
     .from("events_log")
     .select(
-      "id, event_id, event_name, status, value, currency, created_at, trck_user_id, utm_campaign, utm_content, geo_country, geo_region, geo_city, payload_meta, response_meta, payload_ga4, response_ga4",
+      "id, event_id, event_name, status, value, currency, created_at, trck_user_id, utm_campaign, utm_content, referrer, geo_country, geo_region, geo_city, payload_meta, response_meta, payload_ga4, response_ga4",
     )
     .gte("created_at", range.from)
     .lte("created_at", range.to)
@@ -129,10 +143,12 @@ export default async function EventosPage({
                           {adsetName && <p className="truncate text-muted-foreground">{adsetName}</p>}
                           {adName && <p className="truncate text-muted-foreground">{adName}</p>}
                         </div>
-                      ) : (
+                      ) : row.utm_campaign || row.utm_content ? (
                         <span className="text-muted-foreground">
-                          {row.utm_campaign || row.utm_content ? `${row.utm_campaign ?? ""} ${row.utm_content ?? ""}`.trim() : "—"}
+                          {`${row.utm_campaign ?? ""} ${row.utm_content ?? ""}`.trim()}
                         </span>
+                      ) : (
+                        <span className="text-muted-foreground">{referrerLabel(row.referrer)}</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{geo || "—"}</td>

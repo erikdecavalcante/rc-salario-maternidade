@@ -14,9 +14,19 @@ export function hashEmail(email: string): string {
   return sha256Lower(email);
 }
 
-/** Telefone: só dígitos antes de hashear (sem +, espaços, parênteses, hífen). */
+/**
+ * Telefone: só dígitos antes de hashear (sem +, espaços, parênteses, hífen),
+ * COM código do país — a Meta casa pelo número completo (ex: "5511918511819"),
+ * e um número só com DDD ("11918511819") não bate com o que ela já tem
+ * cadastrado do usuário, mesmo sendo "o mesmo número". Negócio é 100% Brasil,
+ * então assume 55 quando o número vem só com DDD (10 dígitos = fixo, 11 =
+ * celular) e ainda não tem o prefixo — não mexe se já vier com código do
+ * país (12/13 dígitos) ou em qualquer outro formato que não esses dois casos.
+ */
 export function hashPhone(phone: string): string {
-  return sha256Lower(phone.replace(/\D/g, ""));
+  const digits = phone.replace(/\D/g, "");
+  const withCountryCode = digits.length === 10 || digits.length === 11 ? `55${digits}` : digits;
+  return sha256Lower(withCountryCode);
 }
 
 /** Remove acentos — a normalização da Meta trata "André"/"São Paulo" como "andre"/"sao paulo". */
