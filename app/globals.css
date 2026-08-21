@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-amber: hsl(var(--amber));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+}
+
+/*
+ * Paleta alinhada com rcsalariomaternidade.com.br (LP do cliente, Rocha e
+ * Campos Advogados): fundo creme quente (#faf3f0 → #f0e0e0), texto marrom
+ * escuro quase preto (#2a1505 / #5a4636), dourado (#be853e, hsl 33 60% 42%)
+ * como cor primária de ação — extraído direto do site (theme-color, labels,
+ * links, ícones, foco de input via inspeção do HTML/CSS renderizado) — e
+ * terracota (#d28977/#cf7e6b, usado nos títulos da LP) reaproveitado como
+ * --amber (cor de status utilitária, ex. badge "partial" em Eventos; sem
+ * ligação com "cor de aviso" genérica, só emprestando o segundo tom de marca
+ * do site pra não colidir com o dourado da primária). Substitui a paleta
+ * anterior (dark quase preto + ciano), herdada do projeto irmão
+ * track.advflowpro.com.
+ *
+ * Diferente daquele projeto, o site do cliente aqui não tem modo escuro —
+ * por isso o tema claro é o default (ver `defaultTheme="light"` em
+ * app/layout.tsx); o escuro continua disponível via toggle, com os mesmos
+ * tons (dourado sobre marrom bem escuro) em vez de zinc+ciano.
+ */
+:root {
+  --radius: 0.75rem;
+
+  /* Tema claro (padrão) */
+  --background: 18 50% 96%;
+  --foreground: 26 40% 13%;
+  --card: 20 45% 98%;
+  --card-foreground: 26 40% 13%;
+  --popover: 20 45% 98%;
+  --popover-foreground: 26 40% 13%;
+  --primary: 33 60% 42%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 24 25% 93%;
+  --secondary-foreground: 26 35% 16%;
+  --muted: 24 25% 93%;
+  --muted-foreground: 27 20% 38%;
+  --accent: 24 22% 90%;
+  --accent-foreground: 26 35% 16%;
+  --amber: 11 55% 50%;
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 22 25% 87%;
+  --input: 22 25% 87%;
+  --ring: 33 60% 42%;
+}
+
+.dark {
+  /* Tema escuro — mesma família de cor (dourado sobre marrom bem escuro),
+     não o zinc+ciano do projeto anterior. */
+  --background: 25 30% 7%;
+  --foreground: 30 25% 95%;
+  --card: 24 22% 11%;
+  --card-foreground: 30 25% 95%;
+  --popover: 24 22% 10%;
+  --popover-foreground: 30 25% 95%;
+  --primary: 34 75% 58%;
+  --primary-foreground: 26 45% 10%;
+  --secondary: 24 15% 16%;
+  --secondary-foreground: 30 20% 92%;
+  --muted: 24 15% 16%;
+  --muted-foreground: 27 15% 65%;
+  --accent: 24 15% 19%;
+  --accent-foreground: 30 20% 92%;
+  --amber: 11 70% 62%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 24 15% 18%;
+  --input: 24 15% 18%;
+  --ring: 34 75% 58%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, hsl(var(--primary) / 0.14), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, hsl(var(--primary) / 0.07), transparent),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background-color: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+}
