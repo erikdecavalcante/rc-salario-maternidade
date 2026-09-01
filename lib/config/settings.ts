@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export type Settings = {
   id: boolean;
   webhook_token_id: string | null;
+  ghl_webhook_token_id: string | null;
   meta_test_event_code: string | null;
   currency: string;
   timezone: string;

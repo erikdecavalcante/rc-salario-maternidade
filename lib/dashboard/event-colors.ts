@@ -4,10 +4,13 @@
 // em vez de quebrar ou virar tudo cinza.
 const KNOWN_EVENT_COLORS: Record<string, string> = {
   PageView: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  IniciouQuiz: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+  ViewContent: "bg-blue-500/15 text-blue-400 border-blue-500/30",
   Lead: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  LeadQualificado: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+  ContratoAssinado: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
   InitiateCheckout: "bg-violet-500/15 text-violet-400 border-violet-500/30",
   Purchase: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  ViewContent: "bg-blue-500/15 text-blue-400 border-blue-500/30",
 };
 
 const FALLBACK_COLORS = [

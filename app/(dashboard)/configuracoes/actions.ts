@@ -75,3 +75,44 @@ export async function setWebhookToken(
 
   revalidatePath("/configuracoes");
 }
+
+// --- Webhook do GHL: mesmo par de actions acima, coluna diferente
+// (ghl_webhook_token_id) — não generalizei em uma função única porque só
+// existem esses dois casos hoje; ver webhook-token-form.tsx pro mesmo raciocínio.
+
+export async function regenerateGhlWebhookToken() {
+  const settings = await getSettings();
+  const token = randomBytes(24).toString("hex");
+  const admin = createAdminClient();
+
+  if (settings.ghl_webhook_token_id) {
+    await updateSecret(settings.ghl_webhook_token_id, token);
+  } else {
+    const secretId = await createSecret(token, "ghl_webhook_token");
+    await admin.from("settings").update({ ghl_webhook_token_id: secretId }).eq("id", true);
+  }
+
+  revalidatePath("/configuracoes");
+}
+
+export async function setGhlWebhookToken(
+  _prev: SetWebhookTokenState,
+  formData: FormData,
+): Promise<SetWebhookTokenState> {
+  const token = (formData.get("token") as string | null)?.trim();
+  if (!token || token.length < 16) {
+    return { error: "O token precisa ter pelo menos 16 caracteres." };
+  }
+
+  const settings = await getSettings();
+  const admin = createAdminClient();
+
+  if (settings.ghl_webhook_token_id) {
+    await updateSecret(settings.ghl_webhook_token_id, token);
+  } else {
+    const secretId = await createSecret(token, "ghl_webhook_token");
+    await admin.from("settings").update({ ghl_webhook_token_id: secretId }).eq("id", true);
+  }
+
+  revalidatePath("/configuracoes");
+}

@@ -1,11 +1,13 @@
 const STAGE_LABELS: Record<string, string> = {
   visited: "Visitou",
+  iniciou_quiz: "Iniciou o quiz",
+  cadastro: "Chegou no cadastro",
   lead: "Lead",
-  checkout: "Checkout",
-  purchase: "Compra",
+  lead_qualificado: "Lead qualificado",
+  contrato_assinado: "Contrato assinado",
 };
 
-const STAGE_ORDER = ["visited", "lead", "checkout", "purchase"];
+const STAGE_ORDER = ["visited", "iniciou_quiz", "cadastro", "lead", "lead_qualificado", "contrato_assinado"];
 
 const SVG_WIDTH = 400;
 const BAND_HEIGHT = 68;

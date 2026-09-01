@@ -6,21 +6,24 @@ import { CopyButton } from "@/components/config/copy-button";
 import { ConfigLinkCard } from "@/components/config/config-link-card";
 import { SettingsForm } from "@/components/config/settings-form";
 import { WebhookTokenForm } from "@/components/config/webhook-token-form";
+import { GhlWebhookTokenForm } from "@/components/config/ghl-webhook-token-form";
 import { getSettings } from "@/lib/config/settings";
 import { readSecret } from "@/lib/vault/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { regenerateWebhookToken } from "./actions";
+import { regenerateWebhookToken, regenerateGhlWebhookToken } from "./actions";
 
 export default async function ConfiguracoesPage() {
   const settings = await getSettings();
-  const webhookToken = settings.webhook_token_id
-    ? await readSecret(settings.webhook_token_id)
-    : null;
+  const [webhookToken, ghlWebhookToken] = await Promise.all([
+    settings.webhook_token_id ? readSecret(settings.webhook_token_id) : null,
+    settings.ghl_webhook_token_id ? readSecret(settings.ghl_webhook_token_id) : null,
+  ]);
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "track.rcsalariomaternidade.com.br";
   const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
   const webhookUrl = webhookToken ? `${protocol}://${host}/api/webhook/guru/${webhookToken}` : null;
+  const ghlWebhookUrl = ghlWebhookToken ? `${protocol}://${host}/api/webhook/ghl/${ghlWebhookToken}` : null;
 
   const admin = createAdminClient();
   const [ga4, pixels, adAccounts, internalIps] = await Promise.all([
@@ -65,6 +68,35 @@ export default async function ConfiguracoesPage() {
 
         <div className="border-t border-border pt-4">
           <WebhookTokenForm />
+        </div>
+      </Card>
+
+      <Card className="space-y-4 p-6">
+        <h2 className="font-semibold">Webhook do GoHighLevel</h2>
+        {ghlWebhookUrl ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="flex-1 truncate rounded-md border border-border bg-background px-3 py-2 font-mono text-xs">
+              {ghlWebhookUrl}
+            </code>
+            <CopyButton value={ghlWebhookUrl} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhum token gerado ainda.</p>
+        )}
+        <form action={regenerateGhlWebhookToken}>
+          <Button type="submit" variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4" />
+            {ghlWebhookUrl ? "Gerar novo token" : "Gerar token"}
+          </Button>
+        </form>
+        <p className="text-xs text-muted-foreground">
+          Cole essa URL na ação de Webhook de cada automação do GHL (uma pra &quot;Lead
+          Qualificado&quot;, outra pra &quot;Contrato Assinado&quot;). Trocar o token invalida o
+          anterior — vai precisar atualizar nas duas automações.
+        </p>
+
+        <div className="border-t border-border pt-4">
+          <GhlWebhookTokenForm />
         </div>
       </Card>
 
