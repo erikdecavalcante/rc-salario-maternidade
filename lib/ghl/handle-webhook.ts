@@ -1,12 +1,21 @@
+import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { getSettings } from "@/lib/config/settings";
+import { getSettings, type Settings } from "@/lib/config/settings";
 import { readSecret } from "@/lib/vault/secrets";
-import { ghlWebhookSchema } from "@/lib/ghl/webhook-schema";
-import { processGhlStageEvent } from "@/lib/ghl/process-stage-event";
+import { ghlStagePayloadSchema, type GhlStage } from "./webhook-schema";
+import { processGhlStageEvent } from "./process-stage-event";
 import { isInternalIp } from "@/lib/tracking/internal-ips";
 import { isMetaBotTraffic } from "@/lib/tracking/meta-bot-traffic";
 import { getClientIp, getUserAgent } from "@/lib/tracking/request-meta";
+
+// Uma coluna de token por etapa (não uma só com `stage` no corpo) — a etapa
+// fica implícita na URL, sem depender de alguém digitar o valor certo no
+// JSON de cada automação do GHL. Ver conversa com o usuário sobre a troca.
+const STAGE_TOKEN_COLUMN: Record<GhlStage, keyof Settings> = {
+  lead_qualificado: "ghl_lead_qualificado_token_id",
+  contrato_assinado: "ghl_contrato_assinado_token_id",
+};
 
 /** Mesmo mecanismo do webhook da Guru: compara hashes (tamanho fixo) em vez
  * dos tokens crus — evita timing attack e o throw do timingSafeEqual quando
@@ -17,15 +26,14 @@ function tokensMatch(a: string, b: string): boolean {
   return timingSafeEqual(hashA, hashB);
 }
 
-export async function POST(request: NextRequest, ctx: RouteContext<"/api/webhook/ghl/[token]">) {
-  const { token } = await ctx.params;
-
+export async function handleGhlWebhook(request: NextRequest, token: string, stage: GhlStage): Promise<NextResponse> {
   const settings = await getSettings();
-  if (!settings.ghl_webhook_token_id) {
+  const tokenId = settings[STAGE_TOKEN_COLUMN[stage]] as string | null;
+  if (!tokenId) {
     return NextResponse.json({ error: "Webhook não configurado." }, { status: 503 });
   }
 
-  const expectedToken = await readSecret(settings.ghl_webhook_token_id);
+  const expectedToken = await readSecret(tokenId);
   if (!token || !tokensMatch(token, expectedToken)) {
     return NextResponse.json({ error: "Token inválido." }, { status: 401 });
   }
@@ -35,14 +43,13 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/webhook
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const parsed = ghlWebhookSchema.safeParse(json);
+  const parsed = ghlStagePayloadSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  // O GHL não manda IP/UA do lead (é servidor-a-servidor) — essas checagens
-  // aqui são só por consistência com os outros pontos de entrada; na prática
-  // não devem barrar nada vindo de um webhook legítimo.
+  // O GHL não manda IP/UA do lead (é servidor-a-servidor) — checagens aqui
+  // só por consistência com os outros pontos de entrada.
   const ip = getClientIp(request);
   const userAgent = getUserAgent(request);
   if (await isInternalIp(ip)) {
@@ -53,10 +60,10 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/webhook
   }
 
   try {
-    const result = await processGhlStageEvent(parsed.data, json);
+    const result = await processGhlStageEvent(stage, parsed.data, json);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
-    console.error("Erro ao processar webhook GHL:", err);
+    console.error(`Erro ao processar webhook GHL (${stage}):`, err);
     return NextResponse.json({ error: "Erro ao processar." }, { status: 500 });
   }
 }

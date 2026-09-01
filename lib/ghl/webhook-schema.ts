@@ -1,17 +1,15 @@
 import { z } from "zod";
 
+export type GhlStage = "lead_qualificado" | "contrato_assinado";
+
 /**
- * Payload do webhook do GoHighLevel — diferente do da Guru (formato fixo,
- * documentado pela plataforma), este é um formato que A GENTE define: o
+ * Payload do webhook do GoHighLevel — formato que A GENTE define (o
  * workflow do GHL manda um corpo JSON customizado, montado à mão com os
- * merge fields do contato/oportunidade. Ver instruções de configuração
- * entregues ao usuário (URL do webhook + corpo JSON exato).
- *
- * `stage` é literal, digitado no corpo do webhook de cada automação do GHL
- * (uma automação por etapa) — não vem de nenhum merge field.
+ * merge fields do contato/oportunidade). SEM campo `stage`: cada etapa tem
+ * sua própria URL/token (ver app/api/webhook/ghl/[stage]/[token]/route.ts)
+ * — evita depender de alguém digitar o valor certo no corpo do webhook.
  */
-export const ghlWebhookSchema = z.object({
-  stage: z.enum(["lead_qualificado", "contrato_assinado"]),
+export const ghlStagePayloadSchema = z.object({
   contact_id: z.string().trim().min(1, { error: "contact_id é obrigatório." }),
   email: z.string().trim().toLowerCase().email().nullable().optional(),
   phone: z.string().trim().max(32).nullable().optional(),
@@ -21,4 +19,4 @@ export const ghlWebhookSchema = z.object({
   currency: z.string().trim().length(3).nullable().optional(),
 });
 
-export type GhlWebhookPayload = z.infer<typeof ghlWebhookSchema>;
+export type GhlStagePayload = z.infer<typeof ghlStagePayloadSchema>;

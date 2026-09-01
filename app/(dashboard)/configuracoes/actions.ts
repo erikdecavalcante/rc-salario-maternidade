@@ -76,27 +76,33 @@ export async function setWebhookToken(
   revalidatePath("/configuracoes");
 }
 
-// --- Webhook do GHL: mesmo par de actions acima, coluna diferente
-// (ghl_webhook_token_id) — não generalizei em uma função única porque só
-// existem esses dois casos hoje; ver webhook-token-form.tsx pro mesmo raciocínio.
+// --- Webhook do GHL: uma URL/token POR ETAPA (lead_qualificado e
+// contrato_assinado), não uma só com `stage` no corpo — evita depender de
+// alguém digitar o valor certo em cada automação do GHL. Com 2 colunas
+// (+ a webhook_token_id da Guru = 3 no total), a duplicação já compensa
+// generalizar num par de helpers, diferente do webhookToken acima (só 1 caso).
 
-export async function regenerateGhlWebhookToken() {
+type GhlStageTokenColumn = "ghl_lead_qualificado_token_id" | "ghl_contrato_assinado_token_id";
+
+async function regenerateStageToken(column: GhlStageTokenColumn, secretLabel: string) {
   const settings = await getSettings();
   const token = randomBytes(24).toString("hex");
   const admin = createAdminClient();
+  const currentId = settings[column];
 
-  if (settings.ghl_webhook_token_id) {
-    await updateSecret(settings.ghl_webhook_token_id, token);
+  if (currentId) {
+    await updateSecret(currentId, token);
   } else {
-    const secretId = await createSecret(token, "ghl_webhook_token");
-    await admin.from("settings").update({ ghl_webhook_token_id: secretId }).eq("id", true);
+    const secretId = await createSecret(token, secretLabel);
+    await admin.from("settings").update({ [column]: secretId }).eq("id", true);
   }
 
   revalidatePath("/configuracoes");
 }
 
-export async function setGhlWebhookToken(
-  _prev: SetWebhookTokenState,
+async function setStageToken(
+  column: GhlStageTokenColumn,
+  secretLabel: string,
   formData: FormData,
 ): Promise<SetWebhookTokenState> {
   const token = (formData.get("token") as string | null)?.trim();
@@ -106,13 +112,36 @@ export async function setGhlWebhookToken(
 
   const settings = await getSettings();
   const admin = createAdminClient();
+  const currentId = settings[column];
 
-  if (settings.ghl_webhook_token_id) {
-    await updateSecret(settings.ghl_webhook_token_id, token);
+  if (currentId) {
+    await updateSecret(currentId, token);
   } else {
-    const secretId = await createSecret(token, "ghl_webhook_token");
-    await admin.from("settings").update({ ghl_webhook_token_id: secretId }).eq("id", true);
+    const secretId = await createSecret(token, secretLabel);
+    await admin.from("settings").update({ [column]: secretId }).eq("id", true);
   }
 
   revalidatePath("/configuracoes");
+}
+
+export async function regenerateGhlLeadQualificadoToken() {
+  await regenerateStageToken("ghl_lead_qualificado_token_id", "ghl_lead_qualificado_token");
+}
+
+export async function setGhlLeadQualificadoToken(
+  _prev: SetWebhookTokenState,
+  formData: FormData,
+): Promise<SetWebhookTokenState> {
+  return setStageToken("ghl_lead_qualificado_token_id", "ghl_lead_qualificado_token", formData);
+}
+
+export async function regenerateGhlContratoAssinadoToken() {
+  await regenerateStageToken("ghl_contrato_assinado_token_id", "ghl_contrato_assinado_token");
+}
+
+export async function setGhlContratoAssinadoToken(
+  _prev: SetWebhookTokenState,
+  formData: FormData,
+): Promise<SetWebhookTokenState> {
+  return setStageToken("ghl_contrato_assinado_token_id", "ghl_contrato_assinado_token", formData);
 }

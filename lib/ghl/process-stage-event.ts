@@ -4,14 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hashEmail, hashPhone, splitName } from "@/lib/meta/hashing";
 import { dispatchEvent } from "@/lib/tracking/dispatch-event";
 import { matchVisitor, type VisitorMatch } from "@/lib/guru/match-visitor";
-import type { GhlWebhookPayload } from "./webhook-schema";
+import type { GhlStage, GhlStagePayload } from "./webhook-schema";
 
 // Nome do evento por etapa: PascalCase pra Meta (mesma convenção de
 // IniciouQuiz/ViewContent/Lead), snake_case pro GA4 (convenção do MP, igual
 // "purchase" no fluxo da Guru). Eventos CUSTOM, não os padrão da Meta — não
 // existe "Lead"/"Purchase" de novo aqui de propósito, pra não contar duas
 // vezes a mesma pessoa como duas conversões do MESMO tipo no Ads Manager.
-const STAGE_EVENT_NAMES: Record<GhlWebhookPayload["stage"], { meta: string; ga4: string }> = {
+const STAGE_EVENT_NAMES: Record<GhlStage, { meta: string; ga4: string }> = {
   lead_qualificado: { meta: "LeadQualificado", ga4: "lead_qualificado" },
   contrato_assinado: { meta: "ContratoAssinado", ga4: "contrato_assinado" },
 };
@@ -30,14 +30,18 @@ export type ProcessStageEventResult = {
  * timeout de entrega já resolvido pro webhook da Guru: responder rápido,
  * deixar a chamada de rede pra depois.
  */
-export async function processGhlStageEvent(payload: GhlWebhookPayload, rawPayload: unknown): Promise<ProcessStageEventResult> {
+export async function processGhlStageEvent(
+  stage: GhlStage,
+  payload: GhlStagePayload,
+  rawPayload: unknown,
+): Promise<ProcessStageEventResult> {
   const admin = createAdminClient();
 
   const { data: existing } = await admin
     .from("ghl_stage_events")
     .select("id, dispatch_event_id")
     .eq("ghl_contact_id", payload.contact_id)
-    .eq("stage", payload.stage)
+    .eq("stage", stage)
     .maybeSingle();
 
   const match = await matchVisitor(admin, {
@@ -70,7 +74,7 @@ export async function processGhlStageEvent(payload: GhlWebhookPayload, rawPayloa
   } else {
     const { data: inserted, error } = await admin
       .from("ghl_stage_events")
-      .insert({ ghl_contact_id: payload.contact_id, stage: payload.stage, ...fields })
+      .insert({ ghl_contact_id: payload.contact_id, stage, ...fields })
       .select("id")
       .single();
     if (error) throw new Error(`Falha ao criar ghl_stage_events: ${error.message}`);
@@ -81,7 +85,7 @@ export async function processGhlStageEvent(payload: GhlWebhookPayload, rawPayloa
 
   if (shouldDispatch) {
     waitUntil(
-      dispatchStageEvent({ admin, payload, id, match }).catch((err) => {
+      dispatchStageEvent({ admin, stage, payload, id, match }).catch((err) => {
         console.error("Erro ao disparar evento GHL em segundo plano:", err);
       }),
     );
@@ -92,13 +96,14 @@ export async function processGhlStageEvent(payload: GhlWebhookPayload, rawPayloa
 
 async function dispatchStageEvent(args: {
   admin: ReturnType<typeof createAdminClient>;
-  payload: GhlWebhookPayload;
+  stage: GhlStage;
+  payload: GhlStagePayload;
   id: string;
   match: VisitorMatch;
 }): Promise<void> {
-  const { admin, payload, id, match } = args;
-  const eventNames = STAGE_EVENT_NAMES[payload.stage];
-  const eventId = `ghl-${payload.contact_id}-${payload.stage}`;
+  const { admin, stage, payload, id, match } = args;
+  const eventNames = STAGE_EVENT_NAMES[stage];
+  const eventId = `ghl-${payload.contact_id}-${stage}`;
 
   const { firstName, lastName } = splitName(payload.name ?? match.visitor?.name ?? "");
 

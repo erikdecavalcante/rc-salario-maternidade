@@ -10,20 +10,32 @@ import { GhlWebhookTokenForm } from "@/components/config/ghl-webhook-token-form"
 import { getSettings } from "@/lib/config/settings";
 import { readSecret } from "@/lib/vault/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { regenerateWebhookToken, regenerateGhlWebhookToken } from "./actions";
+import {
+  regenerateWebhookToken,
+  regenerateGhlLeadQualificadoToken,
+  setGhlLeadQualificadoToken,
+  regenerateGhlContratoAssinadoToken,
+  setGhlContratoAssinadoToken,
+} from "./actions";
 
 export default async function ConfiguracoesPage() {
   const settings = await getSettings();
-  const [webhookToken, ghlWebhookToken] = await Promise.all([
+  const [webhookToken, ghlLeadQualificadoToken, ghlContratoAssinadoToken] = await Promise.all([
     settings.webhook_token_id ? readSecret(settings.webhook_token_id) : null,
-    settings.ghl_webhook_token_id ? readSecret(settings.ghl_webhook_token_id) : null,
+    settings.ghl_lead_qualificado_token_id ? readSecret(settings.ghl_lead_qualificado_token_id) : null,
+    settings.ghl_contrato_assinado_token_id ? readSecret(settings.ghl_contrato_assinado_token_id) : null,
   ]);
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "track.rcsalariomaternidade.com.br";
   const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
   const webhookUrl = webhookToken ? `${protocol}://${host}/api/webhook/guru/${webhookToken}` : null;
-  const ghlWebhookUrl = ghlWebhookToken ? `${protocol}://${host}/api/webhook/ghl/${ghlWebhookToken}` : null;
+  const ghlLeadQualificadoUrl = ghlLeadQualificadoToken
+    ? `${protocol}://${host}/api/webhook/ghl/lead-qualificado/${ghlLeadQualificadoToken}`
+    : null;
+  const ghlContratoAssinadoUrl = ghlContratoAssinadoToken
+    ? `${protocol}://${host}/api/webhook/ghl/contrato-assinado/${ghlContratoAssinadoToken}`
+    : null;
 
   const admin = createAdminClient();
   const [ga4, pixels, adAccounts, internalIps] = await Promise.all([
@@ -72,31 +84,58 @@ export default async function ConfiguracoesPage() {
       </Card>
 
       <Card className="space-y-4 p-6">
-        <h2 className="font-semibold">Webhook do GoHighLevel</h2>
-        {ghlWebhookUrl ? (
+        <h2 className="font-semibold">Webhook do GoHighLevel — Lead Qualificado</h2>
+        {ghlLeadQualificadoUrl ? (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <code className="flex-1 truncate rounded-md border border-border bg-background px-3 py-2 font-mono text-xs">
-              {ghlWebhookUrl}
+              {ghlLeadQualificadoUrl}
             </code>
-            <CopyButton value={ghlWebhookUrl} />
+            <CopyButton value={ghlLeadQualificadoUrl} />
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Nenhum token gerado ainda.</p>
         )}
-        <form action={regenerateGhlWebhookToken}>
+        <form action={regenerateGhlLeadQualificadoToken}>
           <Button type="submit" variant="outline" size="sm">
             <RefreshCw className="h-4 w-4" />
-            {ghlWebhookUrl ? "Gerar novo token" : "Gerar token"}
+            {ghlLeadQualificadoUrl ? "Gerar novo token" : "Gerar token"}
           </Button>
         </form>
         <p className="text-xs text-muted-foreground">
-          Cole essa URL na ação de Webhook de cada automação do GHL (uma pra &quot;Lead
-          Qualificado&quot;, outra pra &quot;Contrato Assinado&quot;). Trocar o token invalida o
-          anterior — vai precisar atualizar nas duas automações.
+          Cole essa URL na ação de Webhook da automação do GHL disparada quando o contato entra
+          na etapa &quot;Lead Qualificado&quot; do pipeline.
         </p>
 
         <div className="border-t border-border pt-4">
-          <GhlWebhookTokenForm />
+          <GhlWebhookTokenForm action={setGhlLeadQualificadoToken} idSuffix="lead-qualificado" />
+        </div>
+      </Card>
+
+      <Card className="space-y-4 p-6">
+        <h2 className="font-semibold">Webhook do GoHighLevel — Contrato Assinado</h2>
+        {ghlContratoAssinadoUrl ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="flex-1 truncate rounded-md border border-border bg-background px-3 py-2 font-mono text-xs">
+              {ghlContratoAssinadoUrl}
+            </code>
+            <CopyButton value={ghlContratoAssinadoUrl} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Nenhum token gerado ainda.</p>
+        )}
+        <form action={regenerateGhlContratoAssinadoToken}>
+          <Button type="submit" variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4" />
+            {ghlContratoAssinadoUrl ? "Gerar novo token" : "Gerar token"}
+          </Button>
+        </form>
+        <p className="text-xs text-muted-foreground">
+          Cole essa URL na ação de Webhook da automação do GHL disparada quando o contato entra
+          na etapa &quot;Contrato Assinado&quot; do pipeline.
+        </p>
+
+        <div className="border-t border-border pt-4">
+          <GhlWebhookTokenForm action={setGhlContratoAssinadoToken} idSuffix="contrato-assinado" />
         </div>
       </Card>
 
