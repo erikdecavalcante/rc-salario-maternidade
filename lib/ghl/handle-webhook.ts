@@ -3,7 +3,7 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSettings, type Settings } from "@/lib/config/settings";
 import { readSecret } from "@/lib/vault/secrets";
-import { ghlStagePayloadSchema, type GhlStage } from "./webhook-schema";
+import { parseGhlStagePayload, type GhlStage } from "./webhook-schema";
 import { processGhlStageEvent } from "./process-stage-event";
 import { isInternalIp } from "@/lib/tracking/internal-ips";
 import { isMetaBotTraffic } from "@/lib/tracking/meta-bot-traffic";
@@ -43,9 +43,9 @@ export async function handleGhlWebhook(request: NextRequest, token: string, stag
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  const parsed = ghlStagePayloadSchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
+  const parsed = parseGhlStagePayload(json);
+  if ("error" in parsed) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
   // O GHL não manda IP/UA do lead (é servidor-a-servidor) — checagens aqui
@@ -60,7 +60,7 @@ export async function handleGhlWebhook(request: NextRequest, token: string, stag
   }
 
   try {
-    const result = await processGhlStageEvent(stage, parsed.data, json);
+    const result = await processGhlStageEvent(stage, parsed, json);
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {
     console.error(`Erro ao processar webhook GHL (${stage}):`, err);
