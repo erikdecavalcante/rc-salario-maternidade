@@ -1,4 +1,4 @@
-import { Users, CreditCard, ShoppingCart, Wallet, DollarSign, TrendingUp } from "lucide-react";
+import { Users, UserCheck, FileCheck, Wallet, DollarSign, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { MetricCard } from "@/components/dashboard/metric-card";
@@ -27,7 +27,6 @@ export default async function OverviewPage() {
   const [
     visitorsRes,
     funnelRes,
-    purchasesRes,
     billingRes,
     spend,
     dailySpend,
@@ -42,12 +41,6 @@ export default async function OverviewPage() {
       .gte("created_at", range.from)
       .lte("created_at", range.to),
     supabase.rpc("funnel_counts", { date_from: range.from, date_to: range.to }),
-    supabase
-      .from("purchases")
-      .select("*", { count: "exact", head: true })
-      .in("status", ["approved", "confirmed"])
-      .gte("created_at", range.from)
-      .lte("created_at", range.to),
     supabase.rpc("billing_summary", { date_from: range.from, date_to: range.to }).single(),
     getLiveAdSpend(range.fromDate, range.toDate),
     getDailyAdSpend(range.fromDate, range.toDate),
@@ -58,9 +51,9 @@ export default async function OverviewPage() {
   ]);
 
   const visitors = visitorsRes.count ?? 0;
-  const purchases = purchasesRes.count ?? 0;
   const funnel = (funnelRes.data ?? []) as { stage: string; visitor_count: number }[];
-  const checkoutCount = Number(funnel.find((f) => f.stage === "checkout")?.visitor_count ?? 0);
+  const leadQualificadoCount = Number(funnel.find((f) => f.stage === "lead_qualificado")?.visitor_count ?? 0);
+  const contratoAssinadoCount = Number(funnel.find((f) => f.stage === "contrato_assinado")?.visitor_count ?? 0);
   const revenue = Number((billingRes.data as { total_revenue?: number } | null)?.total_revenue ?? 0);
   const roas = spend > 0 ? revenue / spend : null;
 
@@ -94,8 +87,18 @@ export default async function OverviewPage() {
 
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
         <MetricCard label="Visitantes únicos" value={String(visitors)} hint={costFor(visitors)} icon={Users} />
-        <MetricCard label="Checkouts" value={String(checkoutCount)} hint={costFor(checkoutCount)} icon={CreditCard} />
-        <MetricCard label="Compras" value={String(purchases)} hint={costFor(purchases)} icon={ShoppingCart} />
+        <MetricCard
+          label="Leads qualificados"
+          value={String(leadQualificadoCount)}
+          hint={costFor(leadQualificadoCount)}
+          icon={UserCheck}
+        />
+        <MetricCard
+          label="Contrato assinado"
+          value={String(contratoAssinadoCount)}
+          hint={costFor(contratoAssinadoCount)}
+          icon={FileCheck}
+        />
         <MetricCard label="Investido" value={formatCurrency(spend)} icon={Wallet} />
         <MetricCard label="Receita" value={formatCurrency(revenue)} icon={DollarSign} />
         <MetricCard label="ROAS" value={roas !== null ? `${roas.toFixed(2)}x` : "—"} icon={TrendingUp} />
