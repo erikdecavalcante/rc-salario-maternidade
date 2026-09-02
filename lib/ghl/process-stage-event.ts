@@ -149,6 +149,15 @@ async function dispatchStageEvent(args: {
       visitor_id: match.visitor?.id ?? null,
       value: payload.value ?? null,
       currency: payload.currency ?? null,
+      // GHL não manda utm nenhuma (não é um page load, é mudança de etapa no
+      // CRM) — diferente do /api/event (onde cair pro visitante seria errado,
+      // já corrigido antes), aqui a utm do visitante casado é a ÚNICA
+      // atribuição possível pra essa conversão, não uma stale de fallback.
+      utm_source: match.visitor?.utm_source ?? null,
+      utm_medium: match.visitor?.utm_medium ?? null,
+      utm_campaign: match.visitor?.utm_campaign ?? null,
+      utm_term: match.visitor?.utm_term ?? null,
+      utm_content: match.visitor?.utm_content ?? null,
       geo_country: match.visitor?.geo_country ?? null,
       geo_region: match.visitor?.geo_region ?? null,
       geo_city: match.visitor?.geo_city ?? null,
