@@ -8,6 +8,18 @@ export type GhlStagePayload = {
   trck_user_id: string | null;
   value: number | null;
   currency: string | null;
+  // Geo autodeclarada do contato no GHL (city/state/postal_code na raiz do
+  // payload nativo — não veio de nenhuma config nossa, é endereço cadastrado
+  // no CRM). Único sinal de geo disponível quando o contato não casa com
+  // nenhum visitante rastreado (nunca visitou o site rastreado por nós —
+  // indicação, WhatsApp direto etc.): sem isso, um evento assim ia pro Meta
+  // só com telefone+nome, quando dava pra mandar city/state/zip/country
+  // também. Mesmo princípio de prioridade do Purchase da Guru (endereço
+  // declarado > geo de navegação).
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  country: string | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -79,5 +91,9 @@ export function parseGhlStagePayload(raw: unknown): GhlStagePayload | { error: s
     trck_user_id: firstNonEmptyString(custom.trck_user_id, root.trck_user_id),
     value: parseValue(custom.value ?? root.value),
     currency: firstNonEmptyString(custom.currency, root.currency),
+    city: firstNonEmptyString(custom.city, root.city, contact.city),
+    state: firstNonEmptyString(custom.state, root.state, contact.state),
+    zip: firstNonEmptyString(custom.zip, custom.postal_code, root.postal_code, contact.postal_code),
+    country: firstNonEmptyString(custom.country, root.country, contact.country),
   };
 }

@@ -118,9 +118,14 @@ async function dispatchStageEvent(args: {
       phone: payload.phone ?? match.visitor?.phone,
       firstName,
       lastName,
-      city: match.visitor?.geo_city,
-      state: match.visitor?.geo_region,
-      country: match.visitor?.geo_country,
+      // Geo autodeclarada no GHL tem prioridade sobre a geo de navegação do
+      // visitante casado (mesma lógica do Purchase da Guru: endereço
+      // declarado > geo por IP) — e é o ÚNICO sinal de geo disponível quando
+      // o contato não bate com nenhum visitante rastreado.
+      city: payload.city ?? match.visitor?.geo_city,
+      state: payload.state ?? match.visitor?.geo_region,
+      zip: payload.zip ?? undefined,
+      country: payload.country ?? match.visitor?.geo_country,
       fbp: match.visitor?.fbp,
       fbc: match.visitor?.fbc,
       externalId: payload.trck_user_id ?? match.visitor?.trck_user_id,
@@ -158,9 +163,9 @@ async function dispatchStageEvent(args: {
       utm_campaign: match.visitor?.utm_campaign ?? null,
       utm_term: match.visitor?.utm_term ?? null,
       utm_content: match.visitor?.utm_content ?? null,
-      geo_country: match.visitor?.geo_country ?? null,
-      geo_region: match.visitor?.geo_region ?? null,
-      geo_city: match.visitor?.geo_city ?? null,
+      geo_country: payload.country ?? match.visitor?.geo_country ?? null,
+      geo_region: payload.state ?? match.visitor?.geo_region ?? null,
+      geo_city: payload.city ?? match.visitor?.geo_city ?? null,
       status: result.status,
       payload_meta: result.payloadMeta,
       response_meta: result.responseMeta,
